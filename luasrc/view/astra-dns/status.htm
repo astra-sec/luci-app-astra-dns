@@ -1,0 +1,36 @@
+<script type="text/javascript">//<![CDATA[
+XHR.poll(3, '<%=url([[admin]], [[services]], [[astra-dns]], [[status]])%>', null,
+	function(x, data) {
+		const tb = document.getElementById('astra_dns_status');
+		if (!data || !tb) {
+			return;
+		}
+
+		let status = '';
+		if (data.running) {
+			status += '<font color=green>Astra DNS <%:RUNNING%></font>';
+		} else {
+			status += '<font color=red>Astra DNS <%:NOT RUNNING%></font>';
+		}
+
+		if (data.redirect) {
+			status += ' <font color=green>(<%:Redirected%>)</font>';
+		} else {
+			status += ' <font color=red>(<%:Not redirected%>)</font>';
+		}
+
+		if (data.version) {
+			status += ' <span>' + data.version + '</span>';
+		}
+
+		tb.innerHTML = '<em><b>' + status + '</b></em>';
+	}
+);
+//]]>
+</script>
+<fieldset class="cbi-section">
+	<p id="astra_dns_status">
+		<em><%:Collecting data...%></em>
+	</p>
+</fieldset>
+

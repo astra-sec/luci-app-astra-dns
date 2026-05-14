@@ -1,0 +1,148 @@
+#!/bin/sh /etc/rc.common
+
+USE_PROCD=1
+START=95
+STOP=10
+
+CONFIGURATION="astra-dns"
+REDIRECT_FILE="/var/run/astra_dns_redirect"
+EXTRA_COMMANDS="do_redirect clear_redirect isrunning force_reload"
+EXTRA_HELP="        do_redirect       Apply firewall redirect\n        clear_redirect    Remove firewall redirect\n        isrunning         Check process state\n        force_reload      Restart service"
+
+get_option() {
+	local option="$1"
+	local default="$2"
+	config_get __value main "$option" "$default"
+	printf '%s' "$__value"
+}
+
+yaml_listen_port() {
+	local configpath="$1"
+	local port
+	port="$(sed -n 's/^[[:space:]]*listen_port:[[:space:]]*//p' "$configpath" 2>/dev/null | head -n 1 | tr -d '"' | tr -d "'")"
+	[ -n "$port" ] || port="8053"
+	printf '%s' "$port"
+}
+
+set_firewall() {
+	local port="$1"
+	uci -q delete firewall.astra_dns_redirect
+	uci set firewall.astra_dns_redirect="redirect"
+	uci set firewall.astra_dns_redirect.name="Astra DNS"
+	uci set firewall.astra_dns_redirect.target="DNAT"
+	uci set firewall.astra_dns_redirect.src="lan"
+	uci set firewall.astra_dns_redirect.family="any"
+	uci set firewall.astra_dns_redirect.src_dport="53"
+	uci set firewall.astra_dns_redirect.dest_port="$port"
+	uci commit firewall
+	/etc/init.d/firewall reload >/dev/null 2>&1
+	echo -n "1" > "$REDIRECT_FILE"
+}
+
+clear_firewall() {
+	uci -q delete firewall.astra_dns_redirect
+	uci commit firewall
+	/etc/init.d/firewall reload >/dev/null 2>&1
+	echo -n "0" > "$REDIRECT_FILE"
+}
+
+do_redirect() {
+	config_load "$CONFIGURATION"
+	local enabled redirect configpath port
+	enabled="$(get_option enabled 0)"
+	redirect="$(get_option redirect none)"
+	configpath="$(get_option configpath /etc/astra-dns/named.yaml)"
+	port="$(yaml_listen_port "$configpath")"
+
+	if [ "$enabled" = "1" ] && [ "$redirect" = "redirect" ]; then
+		set_firewall "$port"
+	else
+		clear_firewall
+	fi
+}
+
+clear_redirect() {
+	clear_firewall
+}
+
+isrunning() {
+	config_load "$CONFIGURATION"
+	local binpath
+	binpath="$(get_option binpath /usr/bin/astra-dns)"
+	if [ ! -x "$binpath" ]; then
+		echo "no bin"
+		return 2
+	fi
+	if pgrep -f "$binpath" >/dev/null 2>&1; then
+		echo "running"
+		return 0
+	fi
+	echo "not run"
+	return 1
+}
+
+force_reload() {
+	restart
+}
+
+service_triggers() {
+	procd_add_reload_trigger "$CONFIGURATION"
+}
+
+start_service() {
+	config_load "$CONFIGURATION"
+	local enabled binpath configpath logfile verbose workdir
+	enabled="$(get_option enabled 0)"
+	[ "$enabled" = "1" ] || return 0
+
+	binpath="$(get_option binpath /usr/bin/astra-dns)"
+	configpath="$(get_option configpath /etc/astra-dns/named.yaml)"
+	logfile="$(get_option logfile /tmp/astra-dns.log)"
+	verbose="$(get_option verbose 0)"
+	workdir="$(get_option workdir /var/lib/astra-dns)"
+
+	[ -x "$binpath" ] || {
+		logger -t astra-dns "binary not found: $binpath"
+		return 1
+	}
+
+	mkdir -p "$workdir" "$(dirname "$configpath")"
+	[ -f "$configpath" ] || cp /usr/share/astra-dns/astra-dns_template.yaml "$configpath"
+
+	"$binpath" --validate -c "$configpath" >/tmp/astra-dns-start-validate.log 2>&1 || {
+		logger -t astra-dns "config validation failed"
+		return 1
+	}
+
+	procd_open_instance
+	procd_set_param respawn
+	if [ -n "$logfile" ]; then
+		mkdir -p "$(dirname "$logfile")"
+		if [ "$verbose" = "1" ]; then
+			procd_set_param command /bin/sh -c "exec \"$binpath\" -d -c \"$configpath\" >> \"$logfile\" 2>&1"
+		else
+			procd_set_param command /bin/sh -c "exec \"$binpath\" -c \"$configpath\" >> \"$logfile\" 2>&1"
+		fi
+	else
+		if [ "$verbose" = "1" ]; then
+			procd_set_param command "$binpath" -d -c "$configpath"
+		else
+			procd_set_param command "$binpath" -c "$configpath"
+		fi
+		procd_set_param stdout 1
+		procd_set_param stderr 1
+	fi
+	procd_close_instance
+
+	do_redirect
+}
+
+stop_service() {
+	clear_firewall
+}
+
+reload_service() {
+	stop
+	start
+}
+

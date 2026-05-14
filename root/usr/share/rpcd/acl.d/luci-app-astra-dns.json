@@ -1,0 +1,20 @@
+{
+	"luci-app-astra-dns": {
+		"description": "Grant access for luci-app-astra-dns",
+		"read": {
+			"file": {
+				"/usr/share/astra-dns/astra-dns_template.yaml": [ "read" ],
+				"/usr/share/astra-dns/update_core.sh": [ "exec" ],
+				"/etc/init.d/astra-dns": [ "exec" ],
+				"/usr/bin/astra-dns": [ "exec" ]
+			},
+			"uci": [ "astra-dns" ]
+		},
+		"write": {
+			"file": {
+				"/usr/share/astra-dns/astra-dns_template.yaml": [ "write" ]
+			},
+			"uci": [ "astra-dns" ]
+		}
+	}
+}

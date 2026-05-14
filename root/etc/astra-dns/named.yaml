@@ -1,0 +1,28 @@
+listen_addrs_ipv4: ["0.0.0.0"]
+listen_port: 8053
+
+filters:
+  - enabled: true
+    url: https://fastly.jsdelivr.net/gh/217heidai/adblockfilters@main/rules/adblockdns.txt
+    name: 217heidai
+    id: 1741278925
+
+user_rules:
+  - "# Local overrides"
+
+filtering:
+  blocking_mode: default
+  blocking_ipv4: 0.0.0.0
+  blocking_ipv6: "::"
+  rewrites: []
+
+zones:
+  - zone: "."
+    zone_type: "External"
+    stores:
+      - type: "forward"
+        name_servers:
+          - socket_addr: "8.8.8.8:53"
+            protocol: "udp"
+            trust_negative_responses: false
+

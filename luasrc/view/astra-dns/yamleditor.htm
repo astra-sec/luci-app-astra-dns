@@ -1,0 +1,24 @@
+<%+cbi/valueheader%>
+<script type="text/javascript">//<![CDATA[
+function reload_config() {
+	XHR.get('<%=url([[admin]], [[services]], [[astra-dns]], [[reloadconfig]])%>', null, function() {
+		location.reload();
+	});
+}
+
+function use_template() {
+	XHR.get('<%=url([[admin]], [[services]], [[astra-dns]], [[gettemplateconfig]])%>', null, function(x) {
+		var textarea = document.querySelector('textarea.cbi-input-textarea');
+		if (textarea) {
+			textarea.value = x.responseText;
+		}
+	});
+}
+//]]>
+</script>
+<% local fs = require "nixio.fs" %>
+<% if fs.access("/tmp/astra-dns-tmp.yaml") then %>
+<input type="button" id="apply_update_button" value="<%:Reload config%>" onclick="reload_config()"/>
+<% end %>
+<input type="button" id="template_button" value="<%:Use template%>" onclick="use_template()"/>
+<%+cbi/valuefooter%>
