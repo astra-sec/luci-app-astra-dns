@@ -10,13 +10,12 @@ PKG_VERSION:=0.0.1
 PKG_MAINTAINER:=<https://github.com/astra-sec/luci-app-astra-dns>
 
 LUCI_TITLE:=LuCI app for Astra DNS
-LUCI_DEPENDS:=+!wget&&!curl:curl +luci-compat
+LUCI_DEPENDS:=+!wget&&!curl:curl
 LUCI_PKGARCH:=all
 LUCI_DESCRIPTION:=Lightweight LuCI interface for managing Astra DNS
 
 define Package/$(PKG_NAME)/conffiles
 /etc/config/astra-dns
-/etc/astra-dns/named.yaml
 endef
 
 define Package/$(PKG_NAME)/preinst
@@ -34,6 +33,10 @@ endef
 define Package/$(PKG_NAME)/postinst
 #!/bin/sh
 	/etc/init.d/astra-dns enable >/dev/null 2>&1
+	enable=$(uci get astra-dns.main.enabled 2>/dev/null)
+	if [ "$$enable" = "1" ]; then
+		/etc/init.d/astra-dns reload >/dev/null 2>&1
+	fi
 	rm -f /tmp/luci-indexcache
 	rm -f /tmp/luci-modulecache/*
 exit 0
@@ -51,3 +54,5 @@ exit 0
 endef
 
 include $(TOPDIR)/feeds/luci/luci.mk
+
+# call BuildPackage - OpenWrt buildroot signature
