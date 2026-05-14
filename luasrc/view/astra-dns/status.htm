@@ -19,10 +19,6 @@ XHR.poll(3, '<%=url([[admin]], [[services]], [[astra-dns]], [[status]])%>', null
 			status += ' <font color=red>(<%:Not redirected%>)</font>';
 		}
 
-		if (data.version) {
-			status += ' <span>' + data.version + '</span>';
-		}
-
 		tb.innerHTML = '<em><b>' + status + '</b></em>';
 	}
 );
@@ -33,4 +29,3 @@ XHR.poll(3, '<%=url([[admin]], [[services]], [[astra-dns]], [[status]])%>', null
 		<em><%:Collecting data...%></em>
 	</p>
 </fieldset>
-
