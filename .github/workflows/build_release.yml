@@ -60,19 +60,19 @@ jobs:
           zstd -d /tmp/SNAPSDK.tar.zst -o /tmp/SNAPSDK.tar
           tar xf /tmp/SNAPSDK.tar --strip-components=1 -C /tmp/SNAPSDK
 
-      - name: Copy source into LuCI feed trees
+      - name: Prepare SDK worktrees
         shell: bash
         run: |
-          mkdir -p /tmp/SDK/feeds/luci/applications/luci-app-astra-dns
-          mkdir -p /tmp/SNAPSDK/feeds/luci/applications/luci-app-astra-dns
-          rsync -av --exclude='.git' ./ /tmp/SDK/feeds/luci/applications/luci-app-astra-dns/
-          rsync -av --exclude='.git' ./ /tmp/SNAPSDK/feeds/luci/applications/luci-app-astra-dns/
+          mkdir -p /tmp/SDK
+          mkdir -p /tmp/SNAPSDK
 
       - name: Compile IPK with legacy SDK
         shell: bash
         run: |
           cd /tmp/SDK
           ./scripts/feeds update -a
+          mkdir -p feeds/luci/applications/luci-app-astra-dns
+          rsync -av --delete --exclude='.git' "${GITHUB_WORKSPACE}/" feeds/luci/applications/luci-app-astra-dns/
           ./scripts/feeds install luci-app-astra-dns
           echo "CONFIG_PACKAGE_luci-app-astra-dns=y" > .config
           make defconfig
@@ -83,6 +83,8 @@ jobs:
         run: |
           cd /tmp/SNAPSDK
           ./scripts/feeds update -a
+          mkdir -p feeds/luci/applications/luci-app-astra-dns
+          rsync -av --delete --exclude='.git' "${GITHUB_WORKSPACE}/" feeds/luci/applications/luci-app-astra-dns/
           ./scripts/feeds install luci-app-astra-dns
           echo "CONFIG_PACKAGE_luci-app-astra-dns=y" > .config
           make defconfig
