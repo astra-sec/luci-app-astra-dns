@@ -31,7 +31,13 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y curl git rsync tar zstd python3-pip
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository ppa:deadsnakes/ppa
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            curl git rsync tar zstd python3-pip python3.9 python3.9-distutils python-is-python3
+          sudo ln -sf /usr/bin/python3.9 /usr/local/bin/python
+          sudo ln -sf /usr/bin/python3.9 /usr/local/bin/python3
           pip3 install --upgrade pip
           pip3 install po2lmo
 
