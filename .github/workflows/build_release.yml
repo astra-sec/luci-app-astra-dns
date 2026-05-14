@@ -16,13 +16,77 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Build LuCI Package
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version from Makefile
         id: build
-        uses: stevenjoezhang/build-luci-app@v1
-        with:
-          package: luci-app-astra-dns
-          sdk-url: https://archive.openwrt.org/releases/21.02.0/targets/x86/64/openwrt-sdk-21.02.0-x86-64_gcc-8.4.0_musl.Linux-x86_64.tar.xz
-          snapsdk-url: https://downloads.openwrt.org/snapshots/targets/x86/64/openwrt-sdk-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst
+        shell: bash
+        run: |
+          version=$(grep 'PKG_VERSION:=' Makefile | awk -F ':=' '{print $2}' | xargs)
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "Current Makefile Version: ${version}"
+
+      - name: Install system dependencies
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y curl git rsync tar zstd python3-pip
+          pip3 install --upgrade pip
+          pip3 install po2lmo
+
+      - name: Download legacy OpenWrt SDK
+        shell: bash
+        run: |
+          mkdir -p /tmp/SDK
+          curl -fSL --connect-timeout 30 --retry 2 \
+            "https://archive.openwrt.org/releases/21.02.0/targets/x86/64/openwrt-sdk-21.02.0-x86-64_gcc-8.4.0_musl.Linux-x86_64.tar.xz" \
+            -o /tmp/SDK.tar.xz
+          tar xf /tmp/SDK.tar.xz --strip-components=1 -C /tmp/SDK
+
+      - name: Download snapshot OpenWrt SDK
+        shell: bash
+        run: |
+          mkdir -p /tmp/SNAPSDK
+          curl -fSL --connect-timeout 30 --retry 2 \
+            "https://downloads.openwrt.org/snapshots/targets/x86/64/openwrt-sdk-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst" \
+            -o /tmp/SNAPSDK.tar.zst
+          zstd -d /tmp/SNAPSDK.tar.zst -o /tmp/SNAPSDK.tar
+          tar xf /tmp/SNAPSDK.tar --strip-components=1 -C /tmp/SNAPSDK
+
+      - name: Copy source into SDKs
+        shell: bash
+        run: |
+          mkdir -p /tmp/SDK/package/luci-app-astra-dns
+          mkdir -p /tmp/SNAPSDK/package/luci-app-astra-dns
+          rsync -av --exclude='.git' ./ /tmp/SDK/package/luci-app-astra-dns/
+          rsync -av --exclude='.git' ./ /tmp/SNAPSDK/package/luci-app-astra-dns/
+
+      - name: Compile IPK with legacy SDK
+        shell: bash
+        run: |
+          cd /tmp/SDK
+          ./scripts/feeds update -a
+          echo "CONFIG_PACKAGE_luci-app-astra-dns=y" > .config
+          make defconfig
+          make package/luci-app-astra-dns/compile V=s
+
+      - name: Compile APK with snapshot SDK
+        shell: bash
+        run: |
+          cd /tmp/SNAPSDK
+          ./scripts/feeds update -a
+          echo "CONFIG_PACKAGE_luci-app-astra-dns=y" > .config
+          make defconfig
+          make package/luci-app-astra-dns/compile V=s
+
+      - name: Collect artifacts
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          find /tmp/SDK/bin/packages -type f -name '*astra-dns*.ipk' -exec cp {} ./artifacts/ \;
+          find /tmp/SNAPSDK/bin/packages -type f -name '*astra-dns*.apk' -exec cp {} ./artifacts/ \;
+          echo "v${{ steps.build.outputs.version }}" > artifacts/version.txt
 
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
