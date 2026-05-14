@@ -3,100 +3,22 @@ name: Compile Astra DNS LuCI App
 on:
   push:
     branches:
-      - master
-      - main
+      - dev
     tags:
       - 'v*'
   workflow_dispatch:
-
-permissions:
-  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Get version from Makefile
+      - name: Build LuCI Package
         id: build
-        shell: bash
-        run: |
-          version=$(grep 'PKG_VERSION:=' Makefile | awk -F ':=' '{print $2}' | xargs)
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
-          echo "Current Makefile Version: ${version}"
-
-      - name: Install system dependencies
-        shell: bash
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y software-properties-common
-          sudo add-apt-repository ppa:deadsnakes/ppa
-          sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
-            curl git rsync tar zstd python3-pip python3.9 python3.9-distutils python-is-python3
-          sudo ln -sf /usr/bin/python3.9 /usr/local/bin/python
-          sudo ln -sf /usr/bin/python3.9 /usr/local/bin/python3
-          pip3 install --upgrade pip
-          pip3 install po2lmo
-
-      - name: Download legacy OpenWrt SDK
-        shell: bash
-        run: |
-          mkdir -p /tmp/SDK
-          curl -fSL --connect-timeout 30 --retry 2 \
-            "https://archive.openwrt.org/releases/21.02.0/targets/x86/64/openwrt-sdk-21.02.0-x86-64_gcc-8.4.0_musl.Linux-x86_64.tar.xz" \
-            -o /tmp/SDK.tar.xz
-          tar xf /tmp/SDK.tar.xz --strip-components=1 -C /tmp/SDK
-
-      - name: Download snapshot OpenWrt SDK
-        shell: bash
-        run: |
-          mkdir -p /tmp/SNAPSDK
-          curl -fSL --connect-timeout 30 --retry 2 \
-            "https://downloads.openwrt.org/snapshots/targets/x86/64/openwrt-sdk-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst" \
-            -o /tmp/SNAPSDK.tar.zst
-          zstd -d /tmp/SNAPSDK.tar.zst -o /tmp/SNAPSDK.tar
-          tar xf /tmp/SNAPSDK.tar --strip-components=1 -C /tmp/SNAPSDK
-
-      - name: Prepare SDK worktrees
-        shell: bash
-        run: |
-          mkdir -p /tmp/SDK
-          mkdir -p /tmp/SNAPSDK
-
-      - name: Compile IPK with legacy SDK
-        shell: bash
-        run: |
-          cd /tmp/SDK
-          ./scripts/feeds update -a
-          mkdir -p feeds/luci/applications/luci-app-astra-dns
-          rsync -av --delete --exclude='.git' "${GITHUB_WORKSPACE}/" feeds/luci/applications/luci-app-astra-dns/
-          ./scripts/feeds install luci-app-astra-dns
-          echo "CONFIG_PACKAGE_luci-app-astra-dns=y" > .config
-          make defconfig
-          make package/feeds/luci/luci-app-astra-dns/compile V=s
-
-      - name: Compile APK with snapshot SDK
-        shell: bash
-        run: |
-          cd /tmp/SNAPSDK
-          ./scripts/feeds update -a
-          mkdir -p feeds/luci/applications/luci-app-astra-dns
-          rsync -av --delete --exclude='.git' "${GITHUB_WORKSPACE}/" feeds/luci/applications/luci-app-astra-dns/
-          ./scripts/feeds install luci-app-astra-dns
-          echo "CONFIG_PACKAGE_luci-app-astra-dns=y" > .config
-          make defconfig
-          make package/feeds/luci/luci-app-astra-dns/compile V=s
-
-      - name: Collect artifacts
-        shell: bash
-        run: |
-          mkdir -p artifacts
-          find /tmp/SDK/bin/packages -type f -name '*astra-dns*.ipk' -exec cp {} ./artifacts/ \;
-          find /tmp/SNAPSDK/bin/packages -type f -name '*astra-dns*.apk' -exec cp {} ./artifacts/ \;
-          echo "v${{ steps.build.outputs.version }}" > artifacts/version.txt
+        uses: stevenjoezhang/build-luci-app@v1
+        with:
+          package: luci-app-astra-dns
+          sdk-url: https://archive.openwrt.org/releases/21.02.0/targets/x86/64/openwrt-sdk-21.02.0-x86-64_gcc-8.4.0_musl.Linux-x86_64.tar.xz
+          snapsdk-url: https://downloads.openwrt.org/snapshots/targets/x86/64/openwrt-sdk-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst
 
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
