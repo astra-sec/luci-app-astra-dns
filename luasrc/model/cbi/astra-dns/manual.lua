@@ -7,6 +7,7 @@ local configpath = uci:get("astra-dns", "main", "configpath") or "/etc/astra-dns
 local binpath = uci:get("astra-dns", "main", "binpath") or "/usr/bin/astra-dns"
 local tmp_config = "/tmp/astra-dns-tmp.yaml"
 local validate_log = "/tmp/astra-dns-validate.log"
+local reload_log = "/tmp/astra-dns-reload.log"
 
 m = Map("astra-dns")
 s = m:section(TypedSection, "main")
@@ -40,6 +41,18 @@ o.validate = function(self, value)
 end
 o.write = function()
 	fs.move(tmp_config, configpath)
+	local result = sys.call("/etc/init.d/astra-dns reload >" .. reload_log .. " 2>&1")
+	if result == 0 then
+		m.message = translate("Configuration saved and Astra DNS reloaded")
+		return
+	end
+
+	local output = fs.readfile(reload_log) or ""
+	if output ~= "" then
+		m.message = translate("Configuration saved, but Astra DNS reload failed") .. " " .. output
+	else
+		m.message = translate("Configuration saved, but Astra DNS reload failed")
+	end
 end
 o.remove = function()
 	fs.writefile(configpath, "")
@@ -60,4 +73,3 @@ if fs.access(tmp_config) then
 end
 
 return m
-

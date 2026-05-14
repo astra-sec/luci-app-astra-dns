@@ -61,10 +61,6 @@ o = s:taboption("core", Value, "workdir", translate("Work dir"))
 o.default = "/var/lib/astra-dns"
 o.rmempty = false
 
-o = s:taboption("core", Flag, "verbose", translate("Verbose log"))
-o.default = 0
-o.optional = false
-
 o = s:taboption("core", Value, "target", translate("Release target"))
 o.default = ""
 o.placeholder = translate("Auto detect")

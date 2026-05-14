@@ -9,6 +9,13 @@ log() {
 	echo "$@"
 }
 
+install_binary() {
+	local src="$1"
+	local dest="$2"
+	cp "$src" "$dest"
+	chmod 0755 "$dest"
+}
+
 config_get_option() {
 	local option="$1"
 	local default="$2"
@@ -82,7 +89,7 @@ for raw_url in $DOWNLOADLINKS; do
 		continue
 	fi
 
-	install -m 0755 "$TMPDIR/astra-dns" "$BINPATH"
+	install_binary "$TMPDIR/astra-dns" "$BINPATH"
 	success=1
 	break
 done
