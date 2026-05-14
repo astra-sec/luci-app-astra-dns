@@ -60,31 +60,33 @@ jobs:
           zstd -d /tmp/SNAPSDK.tar.zst -o /tmp/SNAPSDK.tar
           tar xf /tmp/SNAPSDK.tar --strip-components=1 -C /tmp/SNAPSDK
 
-      - name: Copy source into SDKs
+      - name: Copy source into LuCI feed trees
         shell: bash
         run: |
-          mkdir -p /tmp/SDK/package/luci-app-astra-dns
-          mkdir -p /tmp/SNAPSDK/package/luci-app-astra-dns
-          rsync -av --exclude='.git' ./ /tmp/SDK/package/luci-app-astra-dns/
-          rsync -av --exclude='.git' ./ /tmp/SNAPSDK/package/luci-app-astra-dns/
+          mkdir -p /tmp/SDK/feeds/luci/applications/luci-app-astra-dns
+          mkdir -p /tmp/SNAPSDK/feeds/luci/applications/luci-app-astra-dns
+          rsync -av --exclude='.git' ./ /tmp/SDK/feeds/luci/applications/luci-app-astra-dns/
+          rsync -av --exclude='.git' ./ /tmp/SNAPSDK/feeds/luci/applications/luci-app-astra-dns/
 
       - name: Compile IPK with legacy SDK
         shell: bash
         run: |
           cd /tmp/SDK
           ./scripts/feeds update -a
+          ./scripts/feeds install luci-app-astra-dns
           echo "CONFIG_PACKAGE_luci-app-astra-dns=y" > .config
           make defconfig
-          make package/luci-app-astra-dns/compile V=s
+          make package/feeds/luci/luci-app-astra-dns/compile V=s
 
       - name: Compile APK with snapshot SDK
         shell: bash
         run: |
           cd /tmp/SNAPSDK
           ./scripts/feeds update -a
+          ./scripts/feeds install luci-app-astra-dns
           echo "CONFIG_PACKAGE_luci-app-astra-dns=y" > .config
           make defconfig
-          make package/luci-app-astra-dns/compile V=s
+          make package/feeds/luci/luci-app-astra-dns/compile V=s
 
       - name: Collect artifacts
         shell: bash
