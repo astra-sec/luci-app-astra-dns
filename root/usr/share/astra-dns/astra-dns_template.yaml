@@ -1,6 +1,5 @@
 listen_addrs_ipv4: ["0.0.0.0"]
 listen_port: 5553
-log_level: "Warn"
 
 filters:
   - enabled: true
@@ -11,9 +10,7 @@ filters:
 user_rules:
 
 filtering:
-  blocking_mode: default
-  blocking_ipv4: 0.0.0.0
-  blocking_ipv6: "::"
+  blocking_mode: nxdomain
   rewrites:
     - ip:
       - "173.245.48.0/20"
@@ -40,3 +37,4 @@ dns:
   upstream_dns:
     - 8.8.8.8
     - 8.8.4.4
+  cache_size: 4096
