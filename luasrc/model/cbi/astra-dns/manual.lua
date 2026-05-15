@@ -41,18 +41,8 @@ o.validate = function(self, value)
 end
 o.write = function()
 	fs.move(tmp_config, configpath)
-	local result = sys.call("/etc/init.d/astra-dns reload >" .. reload_log .. " 2>&1")
-	if result == 0 then
-		m.message = translate("Configuration saved and Astra DNS reloaded")
-		return
-	end
-
-	local output = fs.readfile(reload_log) or ""
-	if output ~= "" then
-		m.message = translate("Configuration saved, but Astra DNS reload failed") .. " " .. output
-	else
-		m.message = translate("Configuration saved, but Astra DNS reload failed")
-	end
+	sys.exec("/etc/init.d/astra-dns reload >" .. reload_log .. " 2>&1 &")
+	m.message = translate("Configuration saved, Astra DNS reload scheduled")
 end
 o.remove = function()
 	fs.writefile(configpath, "")
