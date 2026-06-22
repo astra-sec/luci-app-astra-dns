@@ -12,8 +12,18 @@ log() {
 install_binary() {
 	local src="$1"
 	local dest="$2"
+
+	if [ -f "$dest" ] && cmp -s "$src" "$dest"; then
+		[ -x "$dest" ] || {
+			chmod 0755 "$dest"
+			return 0
+		}
+		return 1
+	fi
+
 	cp "$src" "$dest"
 	chmod 0755 "$dest"
+	return 0
 }
 
 config_get_option() {
@@ -65,6 +75,7 @@ trap 'rm -rf "$TMPDIR"' EXIT INT TERM
 mkdir -p "$(dirname "$BINPATH")" "$WORKDIR"
 
 success=0
+updated=0
 IFS='
 '
 for raw_url in $DOWNLOADLINKS; do
@@ -89,7 +100,9 @@ for raw_url in $DOWNLOADLINKS; do
 		continue
 	fi
 
-	install_binary "$TMPDIR/astra-dns" "$BINPATH"
+	if install_binary "$TMPDIR/astra-dns" "$BINPATH"; then
+		updated=1
+	fi
 	success=1
 	break
 done
@@ -101,6 +114,10 @@ if [ "$success" != "1" ]; then
 	exit 1
 fi
 
-log "Installed Astra DNS to $BINPATH"
-/etc/init.d/astra-dns restart >/dev/null 2>&1 || true
+if [ "$updated" = "1" ]; then
+	log "Installed Astra DNS to $BINPATH"
+	/etc/init.d/astra-dns restart >/dev/null 2>&1 || true
+else
+	log "Astra DNS at $BINPATH is already up to date"
+fi
 log "Done"
