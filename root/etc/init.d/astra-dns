@@ -24,25 +24,52 @@ yaml_listen_port() {
 	printf '%s' "$port"
 }
 
+firewall_option_matches() {
+	local option="$1"
+	local expected="$2"
+	[ "$(uci -q get "firewall.astra_dns_redirect.$option" 2>/dev/null)" = "$expected" ]
+}
+
+firewall_redirect_matches() {
+	local port="$1"
+
+	[ "$(uci -q get firewall.astra_dns_redirect 2>/dev/null)" = "redirect" ] || return 1
+	firewall_option_matches name "Astra DNS" || return 1
+	firewall_option_matches target "DNAT" || return 1
+	firewall_option_matches src "lan" || return 1
+	firewall_option_matches family "any" || return 1
+	firewall_option_matches src_dport "53" || return 1
+	firewall_option_matches dest_port "$port" || return 1
+
+	return 0
+}
+
 set_firewall() {
 	local port="$1"
-	uci -q delete firewall.astra_dns_redirect
-	uci set firewall.astra_dns_redirect="redirect"
-	uci set firewall.astra_dns_redirect.name="Astra DNS"
-	uci set firewall.astra_dns_redirect.target="DNAT"
-	uci set firewall.astra_dns_redirect.src="lan"
-	uci set firewall.astra_dns_redirect.family="any"
-	uci set firewall.astra_dns_redirect.src_dport="53"
-	uci set firewall.astra_dns_redirect.dest_port="$port"
-	uci commit firewall
-	/etc/init.d/firewall reload >/dev/null 2>&1 &
+
+	if ! firewall_redirect_matches "$port"; then
+		uci -q delete firewall.astra_dns_redirect
+		uci set firewall.astra_dns_redirect="redirect"
+		uci set firewall.astra_dns_redirect.name="Astra DNS"
+		uci set firewall.astra_dns_redirect.target="DNAT"
+		uci set firewall.astra_dns_redirect.src="lan"
+		uci set firewall.astra_dns_redirect.family="any"
+		uci set firewall.astra_dns_redirect.src_dport="53"
+		uci set firewall.astra_dns_redirect.dest_port="$port"
+		uci commit firewall
+		/etc/init.d/firewall reload >/dev/null 2>&1 &
+	fi
+
 	echo -n "1" > "$REDIRECT_FILE"
 }
 
 clear_firewall() {
-	uci -q delete firewall.astra_dns_redirect
-	uci commit firewall
-	/etc/init.d/firewall reload >/dev/null 2>&1 &
+	if uci -q get firewall.astra_dns_redirect >/dev/null 2>&1; then
+		uci -q delete firewall.astra_dns_redirect
+		uci commit firewall
+		/etc/init.d/firewall reload >/dev/null 2>&1 &
+	fi
+
 	echo -n "0" > "$REDIRECT_FILE"
 }
 
