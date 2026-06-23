@@ -153,7 +153,7 @@ start_service() {
 	mkdir -p "$workdir" "$(dirname "$configpath")"
 	[ -f "$configpath" ] || cp /usr/share/astra-dns/astra-dns_template.yaml "$configpath"
 
-	"$binpath" --validate -c "$configpath" >/tmp/astra-dns-start-validate.log 2>&1 || {
+	"$binpath" --validate -c "$configpath" >/dev/null 2>&1 || {
 		logger -t astra-dns "config validation failed"
 		return 1
 	}
