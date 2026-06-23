@@ -27,7 +27,7 @@ function download_log(){
 function apply_del_log(){
 	XHR.get('<%=url([[admin]], [[services]], [[astra-dns]], [[dodellog]])%>',null,function(x, data){
 		lv.innerHTML="";
-		logPos = 0;
+		logPos = data && data.pos !== undefined ? parseInt(data.pos, 10) || 0 : 0;
 	});
 }
 function chlogtime(){
@@ -97,11 +97,7 @@ function poll_check(){
 		);
 	})();
 }
-<%if self.pollcheck then%>
 poll_check();
-<%else%>
-lv.innerHTML="<%:Please add log path in config to enable log%>"
-<%end%>
 //]]>
 </script>	
 <%+cbi/valuefooter%>

@@ -50,8 +50,9 @@ o.default = "/etc/astra-dns/named.yaml"
 o.rmempty = false
 
 o = s:taboption("basic", Value, "logfile", translate("Runtime log file path"))
-o.default = "/tmp/astra-dns.log"
-o.rmempty = false
+o.default = ""
+o.placeholder = translate("Use system log")
+o.rmempty = true
 
 o = s:taboption("core", Value, "binpath", translate("Astra DNS executable file path"))
 o.default = "/usr/bin/astra-dns"

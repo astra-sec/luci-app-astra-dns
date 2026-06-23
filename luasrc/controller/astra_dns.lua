@@ -31,6 +31,10 @@ local function shell_quote(value)
 	return "'" .. tostring(value):gsub("'", "'\\''") .. "'"
 end
 
+local function read_system_log()
+	return sys.exec("logread 2>/dev/null | grep -F 'astra-dns'") or ""
+end
+
 function get_template_config()
 	local template_file = "/usr/share/astra-dns/astra-dns_template.yaml"
 	http.prepare_content("text/plain; charset=utf-8")
@@ -88,16 +92,29 @@ end
 
 function get_log()
 	http.prepare_content("application/json")
-	local logfile = get_option("logfile", "/tmp/astra-dns.log")
-	if logfile == "" or not fs.access(logfile) then
+	local logfile = get_option("logfile", "")
+	local pos = tonumber(http.formvalue("pos")) or 0
+	local content = ""
+	local newpos = pos
+
+	if logfile == "" then
+		local full_log = read_system_log()
+		if pos > 0 and #full_log >= pos then
+			content = full_log:sub(pos + 1)
+		else
+			content = full_log
+		end
+		newpos = #full_log
+		http.write_json({ pos = newpos, content = content })
+		return
+	end
+
+	if not fs.access(logfile) then
 		http.write_json({ pos = 0, content = "" })
 		return
 	end
 
-	local pos = tonumber(http.formvalue("pos")) or 0
 	local f = io.open(logfile, "r")
-	local content = ""
-	local newpos = pos
 	if f then
 		f:seek("set", pos)
 		content = f:read(1048576) or ""
@@ -109,12 +126,12 @@ function get_log()
 end
 
 function do_dellog()
-	local logfile = get_option("logfile", "/tmp/astra-dns.log")
+	local logfile = get_option("logfile", "")
 	if logfile ~= "" then
 		fs.writefile(logfile, "")
 	end
 	http.prepare_content("application/json")
-	http.write("{}")
+	http.write_json({ pos = logfile == "" and #read_system_log() or 0 })
 end
 
 function check_update()

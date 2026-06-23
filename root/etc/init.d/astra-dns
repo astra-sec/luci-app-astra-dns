@@ -142,7 +142,7 @@ start_service() {
 
 	binpath="$(get_option binpath /usr/bin/astra-dns)"
 	configpath="$(get_option configpath /etc/astra-dns/named.yaml)"
-	logfile="$(get_option logfile /tmp/astra-dns.log)"
+	logfile="$(get_option logfile "")"
 	workdir="$(get_option workdir /var/lib/astra-dns)"
 
 	[ -x "$binpath" ] || {
