@@ -10,7 +10,7 @@ PKG_VERSION:=0.0.3
 PKG_MAINTAINER:=<https://github.com/astra-sec/luci-app-astra-dns>
 
 LUCI_TITLE:=LuCI app for Astra DNS
-LUCI_DEPENDS:=+!wget&&!curl:curl
+LUCI_DEPENDS:=+!wget&&!curl:curl +rpcd-mod-ucode +ucode-mod-fs +ucode-mod-uci
 LUCI_PKGARCH:=all
 LUCI_DESCRIPTION:=Lightweight LuCI interface for managing Astra DNS
 
@@ -32,6 +32,8 @@ endef
 
 define Package/$(PKG_NAME)/postinst
 #!/bin/sh
+	uci -q delete astra-dns.main.workdir >/dev/null 2>&1 || true
+	uci -q commit astra-dns
 	/etc/init.d/astra-dns enable >/dev/null 2>&1
 	enable=$(uci get astra-dns.main.enabled 2>/dev/null)
 	if [ "$$enable" = "1" ]; then
@@ -39,6 +41,7 @@ define Package/$(PKG_NAME)/postinst
 	fi
 	rm -f /tmp/luci-indexcache
 	rm -f /tmp/luci-modulecache/*
+	/etc/init.d/rpcd reload >/dev/null 2>&1 || true
 exit 0
 endef
 

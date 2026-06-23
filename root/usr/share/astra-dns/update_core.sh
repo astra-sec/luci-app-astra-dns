@@ -4,6 +4,8 @@ set -eu
 
 CONFIG=astra-dns
 ERROR_FLAG=/var/run/astra-dns-update-error
+STATE_FILE=/var/run/astra-dns-update-state
+TMPDIR=
 
 log() {
 	echo "$@"
@@ -52,27 +54,41 @@ download_file() {
 	local url="$1"
 	local dest="$2"
 	if command -v curl >/dev/null 2>&1; then
-		curl -fL "$url" -o "$dest"
+		curl -fL --show-error --silent --connect-timeout 20 --max-time 300 --retry 2 --retry-delay 2 "$url" -o "$dest"
 	else
-		wget -O "$dest" "$url"
+		wget -T 300 -O "$dest" "$url"
+	fi
+}
+
+finish() {
+	local code="$?"
+
+	[ -z "$TMPDIR" ] || rm -rf "$TMPDIR"
+
+	if [ "$code" = "0" ]; then
+		rm -f "$ERROR_FLAG"
+		echo "succeeded" > "$STATE_FILE"
+	else
+		touch "$ERROR_FLAG"
+		echo "failed" > "$STATE_FILE"
 	fi
 }
 
 rm -f "$ERROR_FLAG"
+echo "running" > "$STATE_FILE"
+trap finish EXIT
+trap 'exit 130' INT TERM
 
 BINPATH="$(config_get_option binpath /usr/bin/astra-dns)"
-WORKDIR="$(config_get_option workdir /var/lib/astra-dns)"
 DOWNLOADLINKS="$(config_get_option downloadlinks 'https://github.com/astra-sec/astra-dns/releases/latest/download/astra-dns-${Target}.tar.gz')"
 TARGET="$(detect_target)" || {
 	log "Unsupported architecture, please set release target manually."
-	touch "$ERROR_FLAG"
 	exit 1
 }
 
 TMPDIR="$(mktemp -d)"
-trap 'rm -rf "$TMPDIR"' EXIT INT TERM
 
-mkdir -p "$(dirname "$BINPATH")" "$WORKDIR"
+mkdir -p "$(dirname "$BINPATH")"
 
 success=0
 updated=0
@@ -110,7 +126,6 @@ unset IFS
 
 if [ "$success" != "1" ]; then
 	log "No download source succeeded."
-	touch "$ERROR_FLAG"
 	exit 1
 fi
 

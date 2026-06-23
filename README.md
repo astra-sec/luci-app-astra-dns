@@ -2,6 +2,8 @@
 
 Minimal LuCI integration for Astra DNS on OpenWrt.
 
+The UI is implemented as LuCI JavaScript views backed by an rpcd ucode helper.
+
 - Core repo: `https://github.com/astra-sec/astra-dns`
 - Plugin repo: `https://github.com/astra-sec/luci-app-astra-dns`
 

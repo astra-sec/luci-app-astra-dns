@@ -92,37 +92,56 @@ clear_redirect() {
 	clear_firewall
 }
 
-isrunning() {
+service_pid_matches() {
+	local pid="$1"
+	local binpath="$2"
+	local configpath="$3"
+	local expected exe cmdline
+
+	expected="$(readlink -f "$binpath" 2>/dev/null || printf '%s' "$binpath")"
+	exe="$(readlink -f "/proc/$pid/exe" 2>/dev/null || true)"
+	[ "$exe" = "$expected" ] || return 1
+
+	cmdline="$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)"
+	[ -n "$cmdline" ] || return 1
+
+	case " $cmdline " in
+		*" -c $configpath "*|*" --config $configpath "*) return 0 ;;
+	esac
+
+	return 1
+}
+
+find_service_pids() {
 	config_load "$CONFIGURATION"
-	local binpath configpath pids
+	local binpath configpath pid
 	binpath="$(get_option binpath /usr/bin/astra-dns)"
 	configpath="$(get_option configpath /etc/astra-dns/named.yaml)"
+
+	[ -x "$binpath" ] || return 0
+
+	for pid in /proc/[0-9]*; do
+		pid="${pid#/proc/}"
+		service_pid_matches "$pid" "$binpath" "$configpath" && printf '%s\n' "$pid"
+	done
+}
+
+isrunning() {
+	config_load "$CONFIGURATION"
+	local binpath pids
+	binpath="$(get_option binpath /usr/bin/astra-dns)"
 	if [ ! -x "$binpath" ]; then
 		echo "no bin"
 		return 2
 	fi
-	pids="$(pgrep -f "$binpath -c $configpath" 2>/dev/null || true)"
-	if [ -z "$pids" ]; then
-		pids="$(pgrep -f "$binpath" 2>/dev/null || true)"
-	fi
+
+	pids="$(find_service_pids)"
 	if [ -n "$pids" ]; then
 		echo "running"
 		return 0
 	fi
 	echo "not run"
 	return 1
-}
-
-find_service_pids() {
-	config_load "$CONFIGURATION"
-	local binpath configpath pids
-	binpath="$(get_option binpath /usr/bin/astra-dns)"
-	configpath="$(get_option configpath /etc/astra-dns/named.yaml)"
-	pids="$(pgrep -f "$binpath -c $configpath" 2>/dev/null || true)"
-	if [ -z "$pids" ]; then
-		pids="$(pgrep -f "$binpath" 2>/dev/null || true)"
-	fi
-	printf '%s\n' "$pids"
 }
 
 force_reload() {
@@ -136,21 +155,20 @@ service_triggers() {
 
 start_service() {
 	config_load "$CONFIGURATION"
-	local enabled binpath configpath logfile workdir
+	local enabled binpath configpath logfile
 	enabled="$(get_option enabled 0)"
 	[ "$enabled" = "1" ] || return 0
 
 	binpath="$(get_option binpath /usr/bin/astra-dns)"
 	configpath="$(get_option configpath /etc/astra-dns/named.yaml)"
 	logfile="$(get_option logfile "")"
-	workdir="$(get_option workdir /var/lib/astra-dns)"
 
 	[ -x "$binpath" ] || {
 		logger -t astra-dns "binary not found: $binpath"
 		return 1
 	}
 
-	mkdir -p "$workdir" "$(dirname "$configpath")"
+	mkdir -p "$(dirname "$configpath")"
 	[ -f "$configpath" ] || cp /usr/share/astra-dns/astra-dns_template.yaml "$configpath"
 
 	"$binpath" --validate -c "$configpath" >/dev/null 2>&1 || {

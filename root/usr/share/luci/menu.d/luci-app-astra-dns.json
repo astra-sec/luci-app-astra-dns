@@ -1,0 +1,46 @@
+{
+	"admin/services/astra-dns": {
+		"title": "Astra DNS",
+		"order": 10,
+		"action": {
+			"type": "alias",
+			"path": "admin/services/astra-dns/overview"
+		},
+		"depends": {
+			"acl": [ "luci-app-astra-dns" ],
+			"uci": { "astra-dns": true }
+		}
+	},
+	"admin/services/astra-dns/overview": {
+		"title": "Basic Settings",
+		"order": 1,
+		"action": {
+			"type": "view",
+			"path": "astra-dns/overview"
+		}
+	},
+	"admin/services/astra-dns/manual": {
+		"title": "Manual Config",
+		"order": 2,
+		"action": {
+			"type": "view",
+			"path": "astra-dns/manual"
+		}
+	},
+	"admin/services/astra-dns/log": {
+		"title": "Log",
+		"order": 3,
+		"action": {
+			"type": "view",
+			"path": "astra-dns/log"
+		}
+	},
+	"admin/services/astra-dns/update": {
+		"title": "Core Update",
+		"order": 4,
+		"action": {
+			"type": "view",
+			"path": "astra-dns/update"
+		}
+	}
+}
