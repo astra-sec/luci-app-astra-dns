@@ -34,13 +34,5 @@
 			"type": "view",
 			"path": "astra-dns/log"
 		}
-	},
-	"admin/services/astra-dns/update": {
-		"title": "Core Update",
-		"order": 4,
-		"action": {
-			"type": "view",
-			"path": "astra-dns/update"
-		}
 	}
 }
