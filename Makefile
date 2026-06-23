@@ -16,6 +16,7 @@ LUCI_DESCRIPTION:=Lightweight LuCI interface for managing Astra DNS
 
 define Package/$(PKG_NAME)/conffiles
 /etc/config/astra-dns
+/etc/astra-dns/named.yaml
 endef
 
 define Package/$(PKG_NAME)/preinst
