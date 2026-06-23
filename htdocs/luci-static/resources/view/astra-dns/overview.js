@@ -51,6 +51,7 @@ function renderUpdateWidget(refreshStatus) {
 	let logPos = 0;
 	let pollTimer = null;
 	let reverse = false;
+	let updateStarted = false;
 
 	const logView = E('div', { 'style': 'display:none' });
 
@@ -104,20 +105,21 @@ function renderUpdateWidget(refreshStatus) {
 	}
 
 	function pollUpdate(showSuccess) {
-		logView.style.display = '';
-
 		return L.resolveDefault(callCheckUpdate(logPos), {}).then(function(data) {
-			appendLog(data.content || '');
+			if (showSuccess || data.status == 'running' || data.status == 'failed')
+				appendLog(data.content || '');
 			if (data.pos != null)
 				logPos = parseInt(data.pos, 10) || logPos;
 
 			if (data.status == 'running') {
+				logView.style.display = '';
 				setRunning(true);
 				pollTimer = window.setTimeout(function() { pollUpdate(showSuccess); }, 3000);
 			}
 			else {
 				setRunning(false);
 				if (data.status == 'succeeded' && showSuccess) {
+					logView.style.display = '';
 					startButton.disabled = true;
 					startButton.textContent = _('Updated');
 				}
@@ -126,7 +128,7 @@ function renderUpdateWidget(refreshStatus) {
 					startButton.textContent = _('Install / Update core');
 					logView.style.display = '';
 				}
-				else if (!showSuccess) {
+				else if (!showSuccess && !updateStarted) {
 					logView.style.display = 'none';
 				}
 
@@ -142,6 +144,7 @@ function renderUpdateWidget(refreshStatus) {
 
 		logPos = 0;
 		logEl.value = '';
+		updateStarted = true;
 		logView.style.display = '';
 		setRunning(true);
 
