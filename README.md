@@ -13,6 +13,7 @@ Current scope:
 - service start / stop / restart with `procd`
 - core install / update from release URL
 - YAML editor with config validation
+- cache-first remote filters with configurable scheduled refreshes
 - runtime status page
 - log viewer
 - optional port 53 redirect to Astra DNS
