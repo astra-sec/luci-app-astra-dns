@@ -27,8 +27,8 @@ const callCheckUpdate = rpc.declare({
 
 function statusText(status) {
 	const running = status.running
-		? E('span', { 'style': 'color:green' }, _('Astra DNS RUNNING'))
-		: E('span', { 'style': 'color:red' }, _('Astra DNS NOT RUNNING'));
+		? E('span', { 'style': 'color:green' }, [ 'Astra DNS ', _('RUNNING') ])
+		: E('span', { 'style': 'color:red' }, [ 'Astra DNS ', _('NOT RUNNING') ]);
 
 	const redirect = status.redirect
 		? E('span', { 'style': 'color:green' }, [ ' (', _('Redirected'), ')' ])
