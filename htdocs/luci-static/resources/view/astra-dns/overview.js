@@ -220,7 +220,7 @@ return view.extend({
 
 		const statusSection = E('div', { 'class': 'cbi-section' }, [ statusEl ]);
 
-		let s = m.section(form.NamedSection, 'main', 'main', _('Settings'));
+		let s = m.section(form.NamedSection, 'main', 'main');
 		s.addremove = false;
 		s.tab('basic', _('Basic Settings'));
 		s.tab('core', _('Core Settings'));
