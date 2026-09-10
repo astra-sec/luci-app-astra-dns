@@ -6,7 +6,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-astra-dns
-PKG_VERSION:=0.0.6
+PKG_VERSION:=0.0.7
 PKG_MAINTAINER:=<https://github.com/astra-sec/luci-app-astra-dns>
 
 LUCI_TITLE:=LuCI app for Astra DNS
