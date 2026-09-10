@@ -218,7 +218,10 @@ return view.extend({
 		const m = new form.Map('astra-dns', 'Astra DNS',
 			_('A lightweight LuCI interface for managing Astra DNS.'));
 
-		const statusSection = E('div', { 'class': 'cbi-section' }, [ statusEl ]);
+		const statusSection = m.section(form.NamedSection, 'main', 'main');
+		statusSection.render = function() {
+			return E('div', { 'class': 'cbi-section' }, [ statusEl ]);
+		};
 
 		let s = m.section(form.NamedSection, 'main', 'main');
 		s.addremove = false;
@@ -274,8 +277,6 @@ return view.extend({
 			uci.set('astra-dns', section_id, 'downloadlinks', (value || '').replace(/\r\n?/g, '\n'));
 		};
 
-		return m.render().then(function(mapEl) {
-			return E([ statusSection, mapEl ]);
-		});
+		return m.render();
 	}
 });
