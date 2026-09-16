@@ -2,7 +2,6 @@
 'use strict';
 
 import { access, dirname, popen, readfile, unlink, writefile } from 'fs';
-import { init_action } from 'luci.sys';
 import { cursor } from 'uci';
 
 const CONFIG = 'astra-dns';
@@ -44,7 +43,7 @@ function is_update_running() {
 }
 
 function astra_running(binpath, configpath) {
-	return system('/etc/init.d/astra-dns status >/dev/null 2>&1') == 0;
+	return system('/etc/init.d/astra-dns isrunning >/dev/null 2>&1') == 0;
 }
 
 function read_log_chunk(log, pos) {
@@ -246,7 +245,7 @@ const methods = {
 			if (index(valid_actions, action) < 0)
 				return { success: false, code: 1, error: 'Invalid action' };
 
-			const code = init_action('astra-dns', action);
+			const code = system(`env -i /etc/init.d/astra-dns ${action} >/dev/null`);
 			return { success: code == 0, code };
 		}
 	}
