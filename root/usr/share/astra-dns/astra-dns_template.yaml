@@ -1,4 +1,5 @@
 listen_addrs_ipv4: ["0.0.0.0"]
+listen_addrs_ipv6: ["::"]
 listen_port: 5553
 filter_cache_dir: /tmp/astra-dns/filters-cache
 # Refresh remote filters once per day. Set to 0 to disable scheduled refreshes.
